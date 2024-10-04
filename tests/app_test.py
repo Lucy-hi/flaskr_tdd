@@ -1,4 +1,3 @@
-import os
 import pytest
 import json
 from pathlib import Path
@@ -18,6 +17,7 @@ def client():
     with app.app_context():
         db.create_all()  # setup
         yield app.test_client()  # tests run here
+        db.session.close()
         db.drop_all()  # teardown
 
 
@@ -76,6 +76,7 @@ def test_messages(client):
     assert b"&lt;Hello&gt;" in rv.data
     assert b"<strong>HTML</strong> allowed here" in rv.data
 
+
 def test_search_button(client):
     """Ensure the messages are being deleted"""
     login(client, app.config["USERNAME"], app.config["PASSWORD"])
@@ -84,10 +85,9 @@ def test_search_button(client):
         data=dict(title="<Hello>", text="<strong>HTML</strong> allowed here"),
         follow_redirects=True,
     )
-    rv = client.get(
-        "/search/?query=<Hello>"
-    )
+    rv = client.get("/search/?query=<Hello>")
     assert b"<strong>HTML</strong> allowed here" in rv.data
+
 
 def test_delete_message(client):
     """Ensure the messages are being deleted"""
